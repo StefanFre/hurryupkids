@@ -1,0 +1,784 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Raketen-Mission</title>
+  <style>
+    :root{
+      --bg0:#050816;
+      --bg1:#08112a;
+      --stroke:rgba(255,255,255,.11);
+      --text:rgba(255,255,255,.92);
+      --muted:rgba(255,255,255,.66);
+      --muted2:rgba(255,255,255,.45);
+      --green:#28d461;
+      --shadow:rgba(0,0,0,.45);
+      --ring: rgba(255,255,255,.16);
+    }
+    *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+    html,body{ height:100%; }
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      color: var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% 10%, rgba(100,140,255,.18), transparent 60%),
+        radial-gradient(1200px 800px at 90% 20%, rgba(255,90,90,.12), transparent 55%),
+        linear-gradient(180deg, var(--bg0), var(--bg1));
+      overflow-x:hidden;
+    }
+
+    .wrap{ max-width: 1300px; margin: 0 auto; padding: 18px; }
+
+    .kids{ display:grid; grid-template-columns: 1fr; gap: 18px; }
+    @media (min-width: 900px){ .kids{ grid-template-columns: 1fr 1fr; } }
+
+    .card{
+      border-radius: 26px;
+      background: linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.05));
+      border: 1px solid var(--stroke);
+      box-shadow: 0 18px 40px var(--shadow);
+      overflow:hidden;
+      min-height: 430px;
+    }
+
+    .header{
+      display:flex;
+      align-items:flex-start;
+      justify-content: space-between;
+      padding: 16px 16px 0 16px;
+      gap: 12px;
+    }
+    .name{
+      font-size: 34px;
+      font-weight: 900;
+      letter-spacing: .2px;
+      text-shadow: 0 2px 0 rgba(0,0,0,.25);
+    }
+    .timer{
+      font-size: 22px;
+      font-weight: 900;
+      font-variant-numeric: tabular-nums;
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(255,255,255,.10);
+      border: 1px solid rgba(255,255,255,.12);
+      user-select:none;
+    }
+
+    /* Sterneboard */
+    .starsBoard{
+      margin: 12px 16px 12px 16px;
+      padding: 12px 14px;
+      border-radius: 18px;
+      background: rgba(255,255,255,.07);
+      border: 1px solid rgba(255,255,255,.10);
+      display:flex;
+      align-items:center;
+      justify-content: space-between;
+      gap: 14px;
+    }
+    .starsLeft .title{ font-size: 18px; font-weight: 900; }
+    .starsLeft .sub{ margin-top: 4px; font-size: 13px; color: var(--muted); font-weight: 700; }
+
+    .starsRight{ display:flex; gap: 8px; font-size: 28px; user-select:none; }
+    .starsRight .off{ opacity:.20; filter: grayscale(1); }
+    .starsRight .on{ opacity: 1; }
+
+    /* Stage */
+    .stage{
+      position: relative;
+      margin: 0 16px 16px 16px;
+      border-radius: 22px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      overflow:hidden;
+      padding: 14px;
+    }
+
+    .stageGrid{
+      display:grid;
+      grid-template-columns: 1fr;   /* Portrait stacked */
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    /* Querformat / breite Geräte: 1/3 Avatar + 2/3 Actions */
+    @media (min-width: 720px){
+      .stageGrid{
+        grid-template-columns: 1fr 2fr;   /* 1/3 : 2/3 */
+      }
+    }
+
+    .leftBox, .rightBox{
+      border-radius: 18px;
+      background: rgba(255,255,255,.06);
+      border: 1px solid rgba(255,255,255,.10);
+      padding: 12px;
+      position:relative;
+      overflow:hidden;
+    }
+
+    /* Linke Avatar-Box: Avatar füllt die ganze Box */
+    .heroAvatarWrap{
+      height: 100%;
+      min-height: 260px;
+      padding: 0;
+    }
+
+    .heroAvatar{
+      width: 100%;
+      height: 100%;
+      min-height: 260px;
+
+      /* Rahmen wie die Box, nicht als Kreis */
+      border-radius: 16px;
+
+      background: #ffffff; /* PNGs knallen */
+      border: 1px solid rgba(255,255,255,.14);
+      box-shadow: 0 18px 40px rgba(0,0,0,.45);
+      overflow: hidden;
+
+      display: grid;
+      place-items: center;
+    }
+
+    .heroAvatar img{
+      width: 100%;
+      height: 100%;
+      object-fit: cover;          /* füllt komplett */
+      object-position: center 15%;/* Gesicht etwas höher */
+    }
+
+/* ---- RESPONSIVES ACTIONS GRID (dauerhaft) ---- */
+.stage .rightBox .actionsGrid{
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 16px;
+  align-items: start;
+  justify-items: center;
+  padding: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* kompaktere Varianten bei kleineren Breiten */
+@media (max-width: 1100px){
+  .stage .rightBox .actionsGrid { gap: 14px; }
+  .stage .rightBox .action{ width: 120px !important; }
+  .stage .rightBox .circleBtn{ width: 94px !important; height: 94px !important; }
+  .stage .rightBox .circleBtn .emo{ font-size: 38px !important; }
+  .stage .rightBox .actionLabel{ font-size: 14px !important; }
+}
+
+@media (max-width: 900px){
+  .stage .rightBox .actionsGrid { gap: 12px; }
+  .stage .rightBox .action{ width: 110px !important; }
+  .stage .rightBox .circleBtn{ width: 86px !important; height: 86px !important; }
+  .stage .rightBox .circleBtn .emo{ font-size: 34px !important; }
+  .stage .rightBox .actionLabel{ font-size: 13px !important; }
+}
+
+    .action{ width: 130px; text-align:center; user-select:none; }
+
+    .circleBtn{
+      width: 100px;
+      height: 100px;
+      border-radius: 999px;
+      border: 3px solid var(--ring);
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(circle at 50% 80%, rgba(0,0,0,.35), transparent 55%),
+        rgba(0,0,0,.22);
+      box-shadow: 0 16px 26px rgba(0,0,0,.55);
+      display:grid;
+      place-items:center;
+      margin: 0 auto;
+      cursor:pointer;
+      transition: transform .15s ease, border-color .2s ease, box-shadow .2s ease, filter .2s ease;
+    }
+    .circleBtn:active{ transform: scale(.98); }
+    .circleBtn .emo{ font-size: 42px; filter: drop-shadow(0 6px 8px rgba(0,0,0,.35)); }
+
+    .actionLabel{
+      margin-top: 10px;
+      font-weight: 1000;
+      font-size: 15px;
+      letter-spacing: .2px;
+      color: var(--text);
+      text-shadow: 0 2px 0 rgba(0,0,0,.25);
+    }
+
+    .done .circleBtn{
+      border-color: rgba(40,212,97,.95);
+      box-shadow: 0 0 0 6px rgba(40,212,97,.15), 0 16px 26px rgba(0,0,0,.55);
+    }
+
+    /* Finish */
+    .finish .circleBtn{
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.18), transparent 55%),
+        radial-gradient(circle at 50% 80%, rgba(0,0,0,.35), transparent 55%),
+        rgba(255,255,255,.08);
+    }
+    .finish.locked{ opacity: .55; filter: grayscale(.2); }
+    .finish.ready .circleBtn{
+      border-color: rgba(40,212,97,.95);
+      box-shadow:
+        0 0 0 8px rgba(40,212,97,.18),
+        0 0 28px rgba(40,212,97,.45),
+        0 16px 26px rgba(0,0,0,.55);
+      animation: glow 1.2s ease-in-out infinite;
+    }
+    @keyframes glow{
+      0%,100%{ filter: brightness(1); }
+      50%{ filter: brightness(1.12); }
+    }
+
+    /* START overlay */
+    .startBig{
+      position:absolute;
+      inset: 0;
+      display:grid;
+      place-items:center;
+      z-index: 3;
+      transition: opacity .25s ease, transform .25s ease;
+      padding: 10px;
+    }
+    .startBig.hidden{
+      opacity: 0;
+      pointer-events:none;
+      transform: scale(.98);
+    }
+    .startBtn{
+      width: 260px; height: 260px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,.22), transparent 45%),
+        radial-gradient(circle at 55% 55%, rgba(255,255,255,.10), transparent 55%),
+        radial-gradient(circle at 50% 75%, rgba(0,0,0,.35), transparent 55%),
+        linear-gradient(180deg, #ff3a3a, #c31212);
+      box-shadow:
+        0 26px 60px rgba(0,0,0,.55),
+        inset 0 14px 26px rgba(255,255,255,.18),
+        inset 0 -18px 24px rgba(0,0,0,.28);
+      border: 6px solid rgba(255,255,255,.16);
+      display:grid;
+      place-items:center;
+      cursor:pointer;
+      user-select:none;
+      transform: translateZ(0);
+    }
+    .startBtn:active{ transform: scale(.98); filter: brightness(.98); }
+    .startBtn span{
+      font-size: 44px;
+      font-weight: 1000;
+      letter-spacing: 2px;
+      text-shadow: 0 4px 0 rgba(0,0,0,.35);
+    }
+    .startHint{
+      margin-top: 14px;
+      color: var(--muted);
+      font-weight: 800;
+      font-size: 14px;
+      text-align:center;
+    }
+
+    /* Stage content vivid after start */
+    .stageContent{
+      opacity: .60;
+      filter: saturate(.90);
+      transition: opacity .25s ease, filter .25s ease;
+    }
+    .stageContent.started{
+      opacity: 1;
+      filter: saturate(1);
+    }
+
+    /* Rocket launch */
+        .launchRocket{
+      position:absolute;
+      left: 50%;
+      top: 55%;
+      transform: translate(-50%, -50%);
+      font-size: 96px;
+      opacity: 0;
+      pointer-events:none;
+      z-index: 6;
+      filter: drop-shadow(0 18px 18px rgba(0,0,0,.55));
+    }
+    .launchRocket.fly{
+      opacity: 1;
+      animation: flyUp 1.6s ease-in forwards;
+    }
+    @keyframes flyUp{
+      0%   { transform: translate(-50%, -50%) translateY(40px)  scale(0.95); opacity: 1; }
+      30%  { transform: translate(-50%, -50%) translateY(-40px) scale(1.00); opacity: 1; }
+      70%  { transform: translate(-50%, -50%) translateY(-260px) scale(1.08); opacity: 1; }
+      100% { transform: translate(-50%, -50%) translateY(-520px) scale(1.12); opacity: 0; }
+    }
+
+    canvas.confetti{
+      position:absolute;
+      inset:0;
+      width:100%;
+      height:100%;
+      pointer-events:none;
+      z-index: 5;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="wrap">
+    <div class="kids" id="kids"></div>
+  </div>
+
+  <script>
+    /*****************************************************************
+     * KONFIG
+     *****************************************************************/
+    const IMG_EXT = "png"; // falls .jpg: "jpg"
+    const TASKS = [
+      { key: "klo",         label: "Klo",         emo: "🚽" },
+      { key: "zaehne",      label: "Zähneputzen", emo: "🪥" },
+      { key: "anziehen",    label: "Anziehen",    emo: "👕" },
+      { key: "kaemmen",     label: "Kämmen",      emo: "🪮" },
+      { key: "fruehstueck", label: "Frühstück",   emo: "🍽️" }
+    ];
+
+    const KIDS = [
+      { id:"nele", name:"Nele", suffix:"w" },
+      { id:"lutz", name:"Lutz", suffix:"m" }
+    ];
+
+    /*****************************************************************
+     * STATE
+     *****************************************************************/
+    const state = {};
+    for (const kid of KIDS){
+      state[kid.id] = {
+        started: false,
+        startMs: 0,
+        endMs: 0,
+        done: new Set(),
+        stars: Number(localStorage.getItem(`stars_${kid.id}`) || 0),
+        launched: false
+      };
+    }
+
+    const kidsEl = document.getElementById("kids");
+
+    function avatarSrc(kidId){
+      const kid = KIDS.find(k => k.id === kidId);
+      const s = state[kidId];
+      const stage = Math.min(5, Math.max(1, s.done.size + 1)); // 1..5
+      return `images/${stage}${kid.suffix}.${IMG_EXT}`;
+    }
+
+    function fmt(ms){
+      const t = Math.max(0, ms);
+      const totalSec = Math.floor(t / 1000);
+      const min = Math.floor(totalSec / 60);
+      const sec = totalSec % 60;
+      const tenth = Math.floor((t % 1000) / 100);
+      return `${String(min).padStart(2,"0")}:${String(sec).padStart(2,"0")}.${tenth}`;
+    }
+
+    function render(){
+      kidsEl.innerHTML = "";
+
+      for (const kid of KIDS){
+        const s = state[kid.id];
+        const allDone = s.done.size === TASKS.length;
+
+        const card = document.createElement("div");
+        card.className = "card";
+        card.dataset.kid = kid.id;
+
+        // Header
+        const header = document.createElement("div");
+        header.className = "header";
+        header.innerHTML = `
+          <div class="name">${kid.name}</div>
+          <div class="timer" id="timer_${kid.id}">${fmt(0)}</div>
+        `;
+
+        // Stars
+        const starsBoard = document.createElement("div");
+        starsBoard.className = "starsBoard";
+        starsBoard.innerHTML = `
+          <div class="starsLeft">
+            <div class="title">Sterne — ${kid.name}</div>
+            <div class="sub">Motivation für morgen ⭐</div>
+          </div>
+          <div class="starsRight" id="stars_${kid.id}">
+            ${Array.from({length:5}).map((_,i)=>`
+              <span class="${i < s.stars ? "on":"off"}">⭐</span>
+            `).join("")}
+          </div>
+        `;
+
+        // Stage
+        const stage = document.createElement("div");
+        stage.className = "stage";
+
+        // Start overlay
+        const startBig = document.createElement("div");
+        startBig.className = "startBig" + (s.started ? " hidden":"");
+        startBig.innerHTML = `
+          <div>
+            <div class="startBtn" role="button" aria-label="Start">
+              <span>START</span>
+            </div>
+            <div class="startHint">Los geht’s 🚀</div>
+          </div>
+        `;
+        startBig.querySelector(".startBtn").addEventListener("click", () => startKid(kid.id));
+
+        // Stage content (grid)
+        const stageContent = document.createElement("div");
+        stageContent.className = "stageContent" + (s.started ? " started" : "");
+
+        const grid = document.createElement("div");
+        grid.className = "stageGrid";
+
+        // LEFT: big avatar only
+        const left = document.createElement("div");
+       left.className = "leftBox" ;
+       left.style.padding = "10px";
+        left.innerHTML = `
+          <div class="heroAvatarWrap">
+            <div class="heroAvatar">
+              <img src="${avatarSrc(kid.id)}" alt="avatar groß"/>
+            </div>
+          </div>
+        `;
+
+        // RIGHT: actions
+        const right = document.createElement("div");
+        right.className = "rightBox";
+
+        const actions = document.createElement("div");
+        actions.className = "actionsGrid";
+
+        for (const t of TASKS){
+          const action = document.createElement("div");
+          action.className = "action" + (s.done.has(t.key) ? " done" : "");
+          action.innerHTML = `
+            <div class="circleBtn" role="button" aria-label="${t.label}">
+              <div class="emo">${t.emo}</div>
+            </div>
+            <div class="actionLabel">${t.label}</div>
+          `;
+          action.querySelector(".circleBtn").addEventListener("click", () => toggleTask(kid.id, t.key));
+          actions.appendChild(action);
+        }
+
+        // finish tile
+        const finish = document.createElement("div");
+        finish.className = "action finish " + (allDone ? "ready" : "locked");
+        finish.innerHTML = `
+          <div class="circleBtn" role="button" aria-label="Fertig">
+            <div class="emo">✅</div>
+          </div>
+          <div class="actionLabel">Fertig</div>
+        `;
+        finish.querySelector(".circleBtn").addEventListener("click", () => finishKid(kid.id));
+        actions.appendChild(finish);
+
+        right.appendChild(actions);
+
+        grid.appendChild(left);
+        grid.appendChild(right);
+        stageContent.appendChild(grid);
+
+        // rocket + confetti
+        const rocket = document.createElement("div");
+        rocket.className = "launchRocket";
+        rocket.id = `launch_${kid.id}`;
+        rocket.textContent = "🚀";
+
+        const canvas = document.createElement("canvas");
+        canvas.className = "confetti";
+        canvas.id = `confetti_${kid.id}`;
+
+        stage.appendChild(startBig);
+        stage.appendChild(stageContent);
+        stage.appendChild(rocket);
+        stage.appendChild(canvas);
+
+        card.appendChild(header);
+        card.appendChild(starsBoard);
+        card.appendChild(stage);
+
+        kidsEl.appendChild(card);
+      }
+
+      updateTimers();
+    }
+
+    /*****************************************************************
+     * INTERACTIONS (Logik bleibt!)
+     *****************************************************************/
+    function startKid(kidId){
+      const s = state[kidId];
+      if (s.started) return;
+
+      s.started = true;
+      s.launched = false;
+      s.done.clear();
+      s.startMs = performance.now();
+      s.endMs = 0;
+
+      buzz(18);
+      render();
+    }
+
+    function toggleTask(kidId, taskKey){
+      const s = state[kidId];
+      if (!s.started) return;
+      if (s.endMs) return;
+
+      const wasAllDone = (s.done.size === TASKS.length);
+
+      if (s.done.has(taskKey)){
+        s.done.delete(taskKey);
+        tick(12);
+      } else {
+        s.done.add(taskKey);
+        tick(12);
+      }
+
+      const isAllDone = (s.done.size === TASKS.length);
+      if (!wasAllDone && isAllDone){
+        s.endMs = performance.now();
+        success();
+        startConfetti(kidId);
+// Sound erst bei "Fertig", nicht hier
+      }
+
+      render();
+    }
+
+    function finishKid(kidId){
+      const s = state[kidId];
+      const allDone = s.done.size === TASKS.length;
+      if (!allDone) return;
+      if (s.launched) return;
+
+      s.launched = true;
+success();
+playFinishSound(); // ✅ wertiger Sound genau hier
+
+      const el = document.getElementById(`launch_${kidId}`);
+      el.classList.remove("fly");
+      void el.offsetWidth;
+      el.classList.add("fly");
+
+      s.stars = Math.min(5, s.stars + 1);
+      localStorage.setItem(`stars_${kidId}`, String(s.stars));
+
+      setTimeout(() => {
+        s.started = false;
+        s.startMs = 0;
+        s.endMs = 0;
+        s.done.clear();
+        s.launched = false;
+        render();
+      }, 1400);
+    }
+
+    /*****************************************************************
+     * TIMERS
+     *****************************************************************/
+    function updateTimers(){
+      for (const kid of KIDS){
+        const s = state[kid.id];
+        const timerEl = document.getElementById(`timer_${kid.id}`);
+        if (!timerEl) continue;
+
+        if (!s.started){
+          timerEl.textContent = fmt(0);
+        } else if (s.endMs){
+          timerEl.textContent = fmt(s.endMs - s.startMs);
+        } else {
+          timerEl.textContent = fmt(performance.now() - s.startMs);
+        }
+      }
+    }
+    function loop(){
+      updateTimers();
+      requestAnimationFrame(loop);
+    }
+
+    /*****************************************************************
+     * CONFETTI
+     *****************************************************************/
+    const confettiState = {};
+    function startConfetti(kidId){
+      const canvas = document.getElementById(`confetti_${kidId}`);
+      if (!canvas) return;
+
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.floor(rect.width * devicePixelRatio);
+      canvas.height = Math.floor(rect.height * devicePixelRatio);
+
+      const ctx = canvas.getContext("2d");
+      const parts = [];
+      const emojis = ["🎉","✨","⭐️","🎊","💫"];
+
+      for (let i=0;i<48;i++){
+        parts.push({
+          x: (rect.width*0.5 + (Math.random()-0.5)*220),
+          y: rect.height*0.18 + Math.random()*40,
+          vx: (Math.random()-0.5)*2.2,
+          vy: 2.2 + Math.random()*3.0,
+          rot: Math.random()*Math.PI*2,
+          vr: (Math.random()-0.5)*0.25,
+          life: 1.0,
+          emoji: emojis[i % emojis.length],
+          size: 18 + Math.random()*10
+        });
+      }
+
+      confettiState[kidId] = { ctx, canvas, parts };
+
+      const tick = () => {
+        const st = confettiState[kidId];
+        if (!st) return;
+        const {ctx, canvas, parts} = st;
+
+        ctx.clearRect(0,0,canvas.width, canvas.height);
+        ctx.save();
+        ctx.scale(devicePixelRatio, devicePixelRatio);
+
+        for (const p of parts){
+          p.x += p.vx*3.2;
+          p.y += p.vy*3.2;
+          p.rot += p.vr;
+          p.life -= 0.012;
+
+          ctx.globalAlpha = Math.max(0, p.life);
+          ctx.save();
+          ctx.translate(p.x, p.y);
+          ctx.rotate(p.rot);
+          ctx.font = `${p.size}px system-ui`;
+          ctx.fillText(p.emoji, -p.size/2, p.size/2);
+          ctx.restore();
+        }
+        ctx.restore();
+
+        if (parts[0].life > 0){
+          requestAnimationFrame(tick);
+        } else {
+          delete confettiState[kidId];
+          ctx.clearRect(0,0,canvas.width, canvas.height);
+        }
+      };
+      tick();
+    }
+
+    /*****************************************************************
+     * Haptics + Applaus
+     *****************************************************************/
+    function tick(ms=10){ if (navigator.vibrate) navigator.vibrate(ms); }
+    function buzz(ms=20){ if (navigator.vibrate) navigator.vibrate([ms, 30, ms]); }
+    function success(){ if (navigator.vibrate) navigator.vibrate([18, 28, 18, 28, 24]); }
+
+    let audioCtx = null;
+    function ensureAudio(){
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (audioCtx.state === "suspended") audioCtx.resume();
+      return audioCtx;
+    }
+        function playFinishSound(){
+      try{
+        const ctx = ensureAudio();
+        const now = ctx.currentTime;
+
+        // Master
+        const master = ctx.createGain();
+        master.gain.setValueAtTime(0.0001, now);
+        master.gain.exponentialRampToValueAtTime(0.65, now + 0.02);
+        master.gain.exponentialRampToValueAtTime(0.0001, now + 1.25);
+        master.connect(ctx.destination);
+
+        // 1) Soft Kick (very short, not boomy)
+        const kickOsc = ctx.createOscillator();
+        const kickGain = ctx.createGain();
+        kickOsc.type = "sine";
+        kickOsc.frequency.setValueAtTime(120, now);
+        kickOsc.frequency.exponentialRampToValueAtTime(55, now + 0.12);
+        kickGain.gain.setValueAtTime(0.0001, now);
+        kickGain.gain.exponentialRampToValueAtTime(0.55, now + 0.015);
+        kickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.18);
+        kickOsc.connect(kickGain);
+        kickGain.connect(master);
+        kickOsc.start(now);
+        kickOsc.stop(now + 0.2);
+
+        // 2) Ta-Daa (triangle -> warm, not harsh)
+        const notes = [523.25, 659.25, 783.99]; // C5, E5, G5
+        notes.forEach((f, i) => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = "triangle";
+          osc.frequency.setValueAtTime(f, now + i * 0.08);
+
+          g.gain.setValueAtTime(0.0001, now + i * 0.08);
+          g.gain.exponentialRampToValueAtTime(0.22, now + i * 0.08 + 0.02);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + i * 0.08 + 0.55);
+
+          // gentle lowpass to remove "cheap" brightness
+          const lp = ctx.createBiquadFilter();
+          lp.type = "lowpass";
+          lp.frequency.setValueAtTime(1800, now);
+          lp.Q.setValueAtTime(0.6, now);
+
+          osc.connect(lp);
+          lp.connect(g);
+          g.connect(master);
+
+          osc.start(now + i * 0.08);
+          osc.stop(now + i * 0.08 + 0.65);
+        });
+
+        // 3) Tiny sparkle noise (very subtle)
+        const noiseLen = Math.floor(ctx.sampleRate * 0.08);
+        const buffer = ctx.createBuffer(1, noiseLen, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i=0; i<noiseLen; i++){
+          data[i] = (Math.random()*2-1) * Math.pow(1 - i/noiseLen, 2.8);
+        }
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const bp = ctx.createBiquadFilter();
+        bp.type = "bandpass";
+        bp.frequency.setValueAtTime(4200, now);
+        bp.Q.setValueAtTime(1.2, now);
+
+        const ng = ctx.createGain();
+        ng.gain.setValueAtTime(0.0001, now + 0.05);
+        ng.gain.exponentialRampToValueAtTime(0.10, now + 0.07);
+        ng.gain.exponentialRampToValueAtTime(0.0001, now + 0.20);
+
+        noise.connect(bp);
+        bp.connect(ng);
+        ng.connect(master);
+
+        noise.start(now + 0.05);
+        noise.stop(now + 0.22);
+      } catch(e){}
+    }
+
+    /*****************************************************************
+     * INIT
+     *****************************************************************/
+    render();
+    requestAnimationFrame(loop);
+  </script>
+</body>
+</html>
